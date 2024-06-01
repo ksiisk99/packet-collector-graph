@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitoring</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        label, select, button {
+            margin: 0 10px;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="controls">
+        <label for="networkInterface">Network Interface Card:</label>
+        <select id="networkInterface">
+            <option th:each="interface, iterStat : ${networkInterfaces}" th:value="${iterStat.index}"
+                    th:text="${interface}"></option>
+        </select>
+
+        <label for="interval">Interval (seconds):</label>
+        <select id="interval">
+            <option value="15">15</option>
+            <option value="30">30</option>
+            <option value="45">45</option>
+        </select>
+
+        <button id="startButton">Start</button>
+    </div>
+    <canvas id="networkChart"></canvas>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const networkInterfaceDropdown = document.getElementById('networkInterface');
+            const intervalDropdown = document.getElementById('interval');
+            const startButton = document.getElementById('startButton');
+            const ctx = document.getElementById('networkChart').getContext('2d');
+
+            let chart = null;
+            let webSocket = null;
+
+            // Function to start WebSocket and receive data
+            function startWebSocket(networkInterfaceIndex, interval) {
+                if (webSocket) {
+                    webSocket.close();
+                }
+
+                webSocket = new WebSocket('ws://localhost:8080/ws/graph'); // Replace with your WebSocket server address
+
+                webSocket.onopen = () => {
+                    webSocket.send(JSON.stringify({ networkInterfaceIndex, interval }));
+                };
+
+                webSocket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    updateChart(data.processResponseByte);
+                };
+
+                webSocket.onclose = () => {
+                    console.log('WebSocket connection closed');
+                };
+
+                webSocket.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            }
+
+            function updateChart(data) {
+                const timestamp = new Date();
+
+                Object.keys(data).forEach(process => {
+                    const bytes = data[process];
+
+                    let dataset = chart.data.datasets.find(d => d.label === process);
+                    if (!dataset) {
+                        dataset = {
+                            label: process,
+                            data: [],
+                            borderColor: getRandomColor(),
+                            fill: false
+                        };
+                        chart.data.datasets.push(dataset);
+                    }
+
+                    dataset.data.push({ x: timestamp, y: bytes });
+
+                    if (dataset.data.length > 20) {
+                        dataset.data.shift();
+                    }
+                });
+
+                chart.update();
+            }
+
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: []
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'second',
+                                tooltipFormat: 'PPpp'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Bytes'
+                            }
+                        }
+                    }
+                }
+            });
+
+            startButton.addEventListener('click', () => {
+                const networkInterfaceIndex = parseInt(networkInterfaceDropdown.value, 10) + 1;
+                const interval = parseInt(intervalDropdown.value, 10);
+
+                startWebSocket(networkInterfaceIndex, interval);
+            });
+        });
+
+</script>
+</body>
+</html>
