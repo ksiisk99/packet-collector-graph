@@ -30,4 +30,8 @@ public class PacketService {
                 .map(NetworkInterfaceInfo::toString)
                 .collect(Collectors.toList());
     }
+
+    public void stop() {
+        networkTrafficCollector.shutdown();
+    }
 }

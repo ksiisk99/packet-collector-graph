@@ -2,6 +2,7 @@ package packet.collector.graph.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -28,5 +29,11 @@ public class WebSocketHandler extends TextWebSocketHandler {
         Integer interval = data.get("interval");
 
         packetService.start(networkInterfaceIndex, interval, session);
+    }
+
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        packetService.stop();
     }
 }

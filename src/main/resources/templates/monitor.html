@@ -42,6 +42,7 @@
         </select>
 
         <button id="startButton">Start</button>
+        <button id="stopButton">Stop</button>
     </div>
     <canvas id="networkChart"></canvas>
 </div>
@@ -57,13 +58,12 @@
             let chart = null;
             let webSocket = null;
 
-            // Function to start WebSocket and receive data
             function startWebSocket(networkInterfaceIndex, interval) {
                 if (webSocket) {
                     webSocket.close();
                 }
 
-                webSocket = new WebSocket('ws://localhost:8080/ws/graph'); // Replace with your WebSocket server address
+                webSocket = new WebSocket('ws://localhost:8080/ws/graph');
 
                 webSocket.onopen = () => {
                     webSocket.send(JSON.stringify({ networkInterfaceIndex, interval }));
@@ -119,6 +119,13 @@
                 return color;
             }
 
+            function stopWebSocket() {
+                if (webSocket) {
+                    webSocket.close();
+                    webSocket = null;
+                }
+            }
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -153,6 +160,10 @@
                 const interval = parseInt(intervalDropdown.value, 10);
 
                 startWebSocket(networkInterfaceIndex, interval);
+            });
+
+            stopButton.addEventListener('click', () => {
+                stopWebSocket();
             });
         });
 
