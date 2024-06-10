@@ -43,6 +43,7 @@
 
         <button id="startButton">Start</button>
         <button id="stopButton">Stop</button>
+        <button id="resetButton">Reset</button>
     </div>
     <canvas id="networkChart"></canvas>
 </div>
@@ -126,6 +127,11 @@
                 }
             }
 
+            function resetChart() {
+                chart.data.datasets = [];
+                chart.update();
+            }
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -165,6 +171,11 @@
             stopButton.addEventListener('click', () => {
                 stopWebSocket();
             });
+
+            resetButton.addEventListener('click', () => {
+                resetChart();
+            });
+
         });
 
 </script>
